@@ -1,0 +1,93 @@
+<?php
+// $Id$
+ 
+/**
+ * @file
+ * Drupal Module: sms24x7
+ */
+
+require_once(drupal_get_path('module', 'sms_24x7') .'/sms24x7.inc');
+
+
+/**
+ * Implementation of hook_gateway_info().
+ */
+function sms_24x7_gateway_info() {
+  return array(
+    'sms24x7' => array(
+      'name' => 'SMS24X7',
+      'configure form' => 'sms_24x7_admin_form',
+      'send' => 'sms_24x7_send',
+    ),
+  );
+}
+
+
+/**
+ * Callback for sms framework configure form.
+ */
+function sms_24x7_admin_form($configuration) {
+  $form['sms24x7_email'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email'),
+    '#description' => t('The username of your SMS24X7 account.'),
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#default_value' => $configuration['sms24x7_email'],
+  );
+  $form['sms24x7_password'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Password'),
+    '#description' => t('The current password on your SMS24X7 account.'),
+    '#size' => 30,
+    '#maxlength' => 64,
+    '#default_value' => $configuration['sms24x7_password'],
+  );
+  
+  return $form;
+}
+
+
+/**
+ * Callback for sending messages.
+ */
+function sms_24x7_send($number, $message, $options) {
+  $gateway = sms_gateways('gateway', 'sms24x7');
+  $config = $gateway['configuration'];
+  
+  $result = smsapi_push_msg_nologin($config['sms24x7_email'], 
+                            $config['sms24x7_password'], $number, $message);
+  
+  // Check for communication errors
+  if (!$result) {
+    return array('status' => FALSE, 
+                 'message' => t('An error occured during the communication'));
+  }
+  
+  // Check for sms24x7 errors
+  if ($result[0]==0) {
+    return array('status' => TRUE);
+  }
+  else {
+    $error_codes = sms_24x7_error_codes();
+    return array('status' => FALSE, 
+                 'message' => t('An error SMS24X7: @error', 
+                                array('@error' => $error_codes[$result[0]])));
+  }
+}
+
+/**
+ * Helper code errors from sms24x7 api manual.
+ */
+function sms_24x7_error_codes() {
+  return array(
+    15 => "Действие запрещено",
+    19 => "Произошла ошибка",
+    29 => "Сотовый оператор не подключен",
+    35 => "Кодировка текста не соответствует заявленной",
+    36 => "Недостаточно средств, пополните баланс",
+    37 => "Сообщение содержит ненормативную лексику",
+    38 => "Сообщение содержит указание на платный номер");
+}
+
+

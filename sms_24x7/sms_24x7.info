@@ -1,0 +1,5 @@
+name = "SMS24X7"
+description = "SMS24X7 gateway for SMS Framework."
+core = 6.x
+package = SMS Framework
+dependencies[] = sms
